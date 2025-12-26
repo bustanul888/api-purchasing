@@ -1,0 +1,59 @@
+@host=http://localhost:8080
+@token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpemVkIjp0cnVlLCJleHAiOjE3NjY3MzI3MjQsImlkIjoiMDFLREMzMFBHN1FLQlA0UUhYS01LWVFIUjAifQ.kDpdnltxqkpG09p6xSN1zdbxqifPwNutqFdJ1ileMpM
+
+###
+POST {{host}}/user
+Content-Type: application/json
+
+{
+    "user_name": "bustanul",
+    "password": "123456",
+    "role": "admin"
+}
+
+###
+POST {{host}}/auth
+Content-Type: application/json
+
+{
+    "user_name": "bustanul",
+    "password": "123456"
+}
+###
+POST {{host}}/supplier
+Content-Type: application/json
+
+{
+    "name": "supplier",
+    "address": "address",
+    "email": "kljkjkj@gmail.com"
+}
+###
+GET {{host}}/supplier
+###
+POST {{host}}/item
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "item",
+    "price": 10000,
+    "stock": 0
+}
+###
+GET {{host}}/item
+Authorization: Bearer {{token}}
+###
+POST {{host}}/purchasing
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "supplier_id": "01KDC3166YA6MM0RD8XXVDFCS4",
+    "purchasing_detail": [
+        {
+            "item_id": "01KDC31SQ8ZZ139TF19N905E6K",
+            "quantity": 1
+        }
+    ]
+}
