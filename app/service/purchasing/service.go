@@ -2,6 +2,7 @@ package purchasing
 
 import (
 	"fmt"
+	"task-be/app/helper"
 	"task-be/app/model"
 	"task-be/app/service/item"
 	"task-be/app/service/purchasingdetail"
@@ -94,6 +95,10 @@ func (s *service_) getById(id string) purchasingResponse{
 	return s.repository.getById(id)
 }
 
+func (s *service_) getDetailById(id string) []purchasingdetail.PurchasingDetailResponse{
+	return s.purchDetailRepo.GetByPurchasingId(id)
+}
+
 func (s *service_) update(id string,req updatePurchasingRequest) error{
 	return s.repository.update(id,req.SupplierId)
 }
@@ -112,22 +117,60 @@ func (s *service_) delete(id string) error{
 	})
 }
 
-func (s *service_) dashboard() responseDashboard{
+func (s *service_) dashboard(startDate, endDate *string) (responseDashboard, error){
 	var res responseDashboard
-	data := s.repository.getAll()
-	for _,v := range data{
+	var err error
+	
+	// Parse/Setup date range filters
+	var start, end time.Time
+	if startDate != nil && *startDate != "" {
+		if t, err := helper.StringToDate(*startDate); err == nil {
+			start = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+		} else {
+			return responseDashboard{}, err
+		}
+	} else {
+		start = helper.UtcTime().AddDate(0, 0, -30)
+		start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
+	}
+
+	if endDate != nil && *endDate != "" {
+		if t, err := helper.StringToDate(*endDate); err == nil {
+			end = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.UTC)
+		} else {
+			return responseDashboard{}, err
+		}
+	} else {
+		end = helper.UtcTime()
+		end = time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 999999999, time.UTC)
+	}
+
+	// Fetch filtered purchasing records from repository
+	data := s.repository.getDashboard(start, end)
+
+	// Initialize stats & slices
+	res.TotalPurchasing = 0
+	res.TotalItem = 0
+	res.TotalStock = 0
+	res.Purchasing = []responseItemDashboard{}
+	
+	itemMap := make(map[string]bool)
+	for _, v := range data {
 		res.TotalPurchasing += v.GrandTotal
-		for _,r := range v.PurchasingDetails{
-			res.TotalItem += r.Subtotal
-			res.TotalStock += uint64(r.Item.Stock)
-			res.Purchasing = append(res.Purchasing,responseItemDashboard{
-				Date: v.Date,
-				Name: v.Supplier.Name,
-				Stock: uint16(r.Item.Stock),
-				Price: uint64(r.Item.Price),
+		for _, r := range v.PurchasingDetails {
+			res.TotalStock += uint64(r.Quantity)
+			if _, exists := itemMap[r.Item.ID]; !exists {
+				res.TotalItem++
+				itemMap[r.Item.ID] = true
+			}
+			res.Purchasing = append(res.Purchasing, responseItemDashboard{
+				Date:       v.Date,
+				Name:       r.Item.Name,
+				Stock:      r.Quantity,
+				Price:      uint64(r.Item.Price),
 				GrandTotal: r.Subtotal,
 			})
 		}
 	}
-	return res
+	return res, err
 }

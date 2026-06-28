@@ -8,12 +8,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func Router(app *fiber.App, db *gorm.DB,middleware fiber.Handler) {
+func Router(app *fiber.App, db *gorm.DB, auth fiber.Handler, admin fiber.Handler) {
 	Repository := NewRepository(db)
 	service_ := NewService(Repository)
-	route := app.Group("/item",middleware)
+	route := app.Group("/item", auth)
 
-	route.Post("",func(c *fiber.Ctx) error{
+	route.Post("", admin, func(c *fiber.Ctx) error{
 		var req itemRequest
 		if service.BindAndValidate(c,&req){
 			return nil
@@ -22,7 +22,7 @@ func Router(app *fiber.App, db *gorm.DB,middleware fiber.Handler) {
 		return service.JSON(c,err,helper.GetMessage.Create)
 	})
 
-	route.Put("/:id",func(c *fiber.Ctx) error{
+	route.Put("/:id", admin, func(c *fiber.Ctx) error{
 		id := c.Params("id")
 		var req itemRequest
 		if service.BindAndValidate(c,&req){
@@ -32,7 +32,7 @@ func Router(app *fiber.App, db *gorm.DB,middleware fiber.Handler) {
 		return service.JSON(c,err,helper.GetMessage.Update)
 	})
 
-	route.Delete("/:id",func(c *fiber.Ctx) error{
+	route.Delete("/:id", admin, func(c *fiber.Ctx) error{
 		id := c.Params("id")
 		err := service_.delete(id)
 		return service.JSON(c,err,helper.GetMessage.Delete)

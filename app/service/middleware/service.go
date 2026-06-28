@@ -13,6 +13,7 @@ import (
 type Service interface {
 	Auth() fiber.Handler
 	PermittedWithInstitution() fiber.Handler
+	IsAdmin() fiber.Handler
 }
 
 type middleware struct {
@@ -49,11 +50,40 @@ func (m *middleware) Auth() fiber.Handler {
 			return c.Status(403).JSON(message)
 		}
 
-		claims, _ := token.Claims.(jwt.MapClaims)
-		c.Set("id", claims["id"].(string))
-		userId := fmt.Sprintf("%v", claims["id"])
-		c.Locals("id",userId)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Status(403).JSON(message)
+		}
+
+		var userId, role string
+		if claims["id"] != nil {
+			userId = fmt.Sprintf("%v", claims["id"])
+		}
+		if claims["role"] != nil {
+			role = fmt.Sprintf("%v", claims["role"])
+		}
+
+		c.Set("id", userId)
+		c.Set("role", role)
+		c.Locals("id", userId)
+		c.Locals("role", role)
 		c.Next()
 		return nil
+	}
+}
+
+func (m *middleware) IsAdmin() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var message Message
+		message.Message = "unauthorized"
+		roleVal := c.Locals("role")
+		if roleVal == nil {
+			return c.Status(403).JSON(message)
+		}
+		role, ok := roleVal.(string)
+		if !ok || role != "admin" {
+			return c.Status(403).JSON(message)
+		}
+		return c.Next()
 	}
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func GenerateToken(id string) (string, error) {
+func GenerateToken(id string, role string) (string, error) {
 	godotenv.Load()
 	lifeSpan, err := strconv.Atoi(os.Getenv("LIFE_SPAN"))
 	if err != nil {
@@ -20,8 +20,8 @@ func GenerateToken(id string) (string, error) {
 	}
 	claims := jwt.MapClaims{}
 	claims["authorized"] = true
-	claims["id"] = true
 	claims["id"] = id
+	claims["role"] = role
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(lifeSpan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token_, _ := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))

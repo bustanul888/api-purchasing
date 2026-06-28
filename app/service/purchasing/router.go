@@ -11,12 +11,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func Router(app *fiber.App, db *gorm.DB, middleware fiber.Handler) {
+func Router(app *fiber.App, db *gorm.DB, auth fiber.Handler, admin fiber.Handler) {
 	Repository := NewRepository(db)
 	PurchasingDetailRepository := purchasingdetail.NewRepository(db)
 	ItemRepository := item.NewRepository(db)
 	service_ := NewService(Repository,PurchasingDetailRepository,ItemRepository)
-	route := app.Group("/purchasing",middleware)
+	route := app.Group("/purchasing", auth)
 
 	route.Post("",func(c *fiber.Ctx) error{
 		var req purchasingRequest
@@ -29,7 +29,7 @@ func Router(app *fiber.App, db *gorm.DB, middleware fiber.Handler) {
 		return service.JSON(c,err,helper.GetMessage.Create)
 	})
 
-	route.Put("/:id",func(c *fiber.Ctx) error{
+	route.Put("/:id", admin, func(c *fiber.Ctx) error{
 		id := c.Params("id")
 		var req updatePurchasingRequest
 		if service.BindAndValidate(c,&req){
@@ -39,7 +39,7 @@ func Router(app *fiber.App, db *gorm.DB, middleware fiber.Handler) {
 		return service.JSON(c,err,helper.GetMessage.Update)
 	})
 
-	route.Delete("/:id",func(c *fiber.Ctx) error{
+	route.Delete("/:id", admin, func(c *fiber.Ctx) error{
 		id := c.Params("id")
 		err := service_.delete(id)
 		return service.JSON(c,err,helper.GetMessage.Delete)
@@ -47,17 +47,30 @@ func Router(app *fiber.App, db *gorm.DB, middleware fiber.Handler) {
 
 	route.Get("",func(c *fiber.Ctx) error{
 		data := service_.getAll()
-		return c.Status(200).JSON(data)
+		return service.JSON(c, nil, data)
+	})
+
+	route.Get("/dashboard",func(c *fiber.Ctx) error{
+		var startPtr, endPtr *string
+		if start := c.Query("start_date"); start != "" {
+			startPtr = &start
+		}
+		if end := c.Query("end_date"); end != "" {
+			endPtr = &end
+		}
+		data, err := service_.dashboard(startPtr, endPtr)
+		return service.JSON(c, err, data)
 	})
 
 	route.Get("/:id",func(c *fiber.Ctx) error{
 		id := c.Params("id")
 		data := service_.getById(id)
-		return c.Status(200).JSON(data)
+		return service.JSON(c, nil, data)
 	})
 
-	route.Get("/dashboard",func(c *fiber.Ctx) error{
-		data := service_.dashboard()
-		return c.Status(200).JSON(data)
+	route.Get("/detail/:id",func(c *fiber.Ctx) error{
+		id := c.Params("id")
+		data := service_.getDetailById(id)
+		return service.JSON(c, nil, data)
 	})
 }

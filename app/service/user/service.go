@@ -10,8 +10,8 @@ type Service interface {
 	create(req userRequest) error
 	getAll() []userResponse
 	update(id string,req userUpdateRequest) error
-	updatePassword(id string, req userUpdatePassword) (int,error)
 	delete(id string) error
+	myProfileUpdate(id string, req myProfileUpdateRequest) (int, error)
 }
 
 type service_ struct {
@@ -40,20 +40,39 @@ func (s *service_) getById(id string) userResponse{
 }
 
 func (s *service_) update(id string,req userUpdateRequest) error{
-	return s.repository.update(id,req.UserName,req.Role)
+	var err error
+	if req.NewPassword != nil && *req.NewPassword != "" {
+		password := helper.HashPasword(*req.NewPassword)
+		err = s.repository.updatePassword(id,password)
+		if err != nil {
+			return err
+		}
+	}
+	err = s.repository.update(id,req.UserName,req.Role)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (s *service_) updatePassword(id string, req userUpdatePassword) (int,error){
+func (s *service_) myProfileUpdate(id string, req myProfileUpdateRequest) (int,error){
+	var err error
 	user := s.repository.GetById(id)
-	if !helper.ComparePassword(req.OldPassword, user.Password) {
-		return 409, errors.New("OLD_PASSWORD_FALSE")
+	if req.NewPassword != nil && *req.NewPassword != "" {
+		if !helper.ComparePassword(req.OldPassword, user.Password) {
+			return 409, errors.New("OLD_PASSWORD_FALSE")
+		}
+		newHashPassword := helper.HashPasword(*req.NewPassword)
+		err = s.repository.updatePassword(id, newHashPassword)
+		if err != nil {
+			return 500, err
+		}
 	}
-	newHashPassword := helper.HashPasword(req.NewPassword)
-	err := s.repository.updatePassword(id,newHashPassword)
-	if err!=nil{
-		return 500,err
+	err = s.repository.update(id, req.UserName, user.Role)
+	if err != nil {
+		return 500, err
 	}
-	return 200,err
+	return 200, nil
 }
 
 func (s *service_) delete(id string) error{

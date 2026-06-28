@@ -29,20 +29,20 @@ func (r *repository) create(data model.User) error{
 }
 
 func (r *repository) update(id string, newUserName string, role string) error{
-	return r.db.Where("id = ?",id).Updates(map[string]interface{}{
+	return r.db.Model(&model.User{}).Where("id = ?",id).Updates(map[string]interface{}{
 		"user_name":newUserName,
 		"role":role,
 		}).Error
 }
 
 func (r *repository) updatePassword(id string, newPass string) error{
-	return r.db.Where("id = ?",id).Updates(map[string]interface{}{
+	return r.db.Model(&model.User{}).Where("id = ?",id).Updates(map[string]interface{}{
 		"password":newPass,
 		}).Error
 }
 
 func (r *repository) delete(id string) error{
-	return r.db.Where("id = ?",id).Delete(&model.User{}).Error
+	return r.db.Model(&model.User{}).Where("id = ?",id).Delete(&model.User{}).Error
 }
 
 func (r *repository) getAll() []userResponse{

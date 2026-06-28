@@ -26,10 +26,10 @@ func Run(){
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 	auth.Router(app,db,middleware.Auth())
-	supplier.Router(app,db)
-	purchasing.Router(app,db,middleware.Auth())
-	item.Router(app,db,middleware.Auth())
-	user.Router(app,db)
+	supplier.Router(app,db,middleware.Auth(),middleware.IsAdmin())
+	purchasing.Router(app,db,middleware.Auth(),middleware.IsAdmin())
+	item.Router(app,db,middleware.Auth(),middleware.IsAdmin())
+	user.Router(app,db,middleware.Auth(),middleware.IsAdmin())
 	
 	port := "8080"
 	if os.Getenv("PORT") != "" {

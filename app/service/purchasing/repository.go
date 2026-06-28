@@ -2,6 +2,7 @@ package purchasing
 
 import (
 	"task-be/app/model"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -13,6 +14,7 @@ type Repository interface {
 	delete(tx *gorm.DB,id string) error
 	getAll() []purchasingResponse
 	getById(id string) purchasingResponse
+	getDashboard(start, end time.Time) []purchasingResponse
 	update(id string,supplierId string) error
 }
 
@@ -45,13 +47,13 @@ func (r *repository) delete(tx *gorm.DB,id string) error{
 
 func (r *repository) getAll() []purchasingResponse{
 	var res []purchasingResponse
-	r.db.Joins("Supplier").Joins("User").Preload("PurchasingDetails").Find(&res)
+	r.db.Joins("Supplier").Joins("User").Preload("PurchasingDetails.Item").Find(&res)
 	return res
 }
 
 func (r *repository) getById(id string) purchasingResponse{
 	var res purchasingResponse
-	r.db.Joins("Supplier").Joins("User").Preload("PurchasingDetails").Where("id = ?",id).Find(&res)
+	r.db.Joins("Supplier").Joins("User").Preload("PurchasingDetails.Item").Where("id = ?",id).Find(&res)
 	return res
 }
 
@@ -59,4 +61,12 @@ func (r *repository) update(id string,supplierId string) error{
 	return r.db.Where("id = ?",id).Updates(map[string]interface{}{
 		"supplier_id":supplierId,
 		}).Error
+}
+
+func (r *repository) getDashboard(start time.Time, end time.Time) []purchasingResponse {
+	var res []purchasingResponse
+	r.db.Joins("Supplier").Joins("User").Preload("PurchasingDetails.Item").
+		Where("date >= ? AND date <= ?", start, end).
+		Find(&res)
+	return res
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"task-be/app/helper"
 	"task-be/app/helper/blacklisttoken"
 	"task-be/app/model"
@@ -27,8 +28,10 @@ func NewService(blackListRepo blacklisttoken.Repository,userRepo user.Repository
 func (s *service_) login(request authRequest) (authResponse, int, error) {
 	user := s.userRepo.GetByUsername(request.UserName)
 	if user.ID != "" {
+		fmt.Println("User found")
 		if helper.ComparePassword(request.Password, user.Password) {
-			token, _ := helper.GenerateToken(user.ID)
+			fmt.Println("Password matched")
+			token, _ := helper.GenerateToken(user.ID, user.Role)
 			return authResponse{
 				ID:       user.ID,
 				Token:    token,
