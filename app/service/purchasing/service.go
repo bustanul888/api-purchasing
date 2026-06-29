@@ -154,23 +154,33 @@ func (s *service_) dashboard(startDate, endDate *string) (responseDashboard, err
 	res.TotalStock = 0
 	res.Purchasing = []responseItemDashboard{}
 	
-	itemMap := make(map[string]bool)
+	itemMap := make(map[string]responseItemDashboard)
+	var itemIDs []string
 	for _, v := range data {
 		res.TotalPurchasing += v.GrandTotal
 		for _, r := range v.PurchasingDetails {
 			res.TotalStock += uint64(r.Quantity)
-			if _, exists := itemMap[r.Item.ID]; !exists {
+			if item, exists := itemMap[r.Item.ID]; !exists {
 				res.TotalItem++
-				itemMap[r.Item.ID] = true
+				itemIDs = append(itemIDs, r.Item.ID)
+				itemMap[r.Item.ID] = responseItemDashboard{
+					Date:       v.Date,
+					Name:       r.Item.Name,
+					Stock:      r.Quantity,
+					Price:      uint64(r.Item.Price),
+					GrandTotal: r.Subtotal,
+				}
+			} else {
+				item.Stock += r.Quantity
+				item.GrandTotal += r.Subtotal
+				itemMap[r.Item.ID] = item
 			}
-			res.Purchasing = append(res.Purchasing, responseItemDashboard{
-				Date:       v.Date,
-				Name:       r.Item.Name,
-				Stock:      r.Quantity,
-				Price:      uint64(r.Item.Price),
-				GrandTotal: r.Subtotal,
-			})
 		}
 	}
+
+	for _, id := range itemIDs {
+		res.Purchasing = append(res.Purchasing, itemMap[id])
+	}
+
 	return res, err
 }
